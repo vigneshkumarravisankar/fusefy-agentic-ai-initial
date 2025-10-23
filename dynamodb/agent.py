@@ -18,39 +18,18 @@ if openai_api_key is None:
 
 
 class FusefyAgentManager:
-    
     def __init__(self, stage_name: str = "staging", app_name: str = "fusefy"):
         self.stage_name = stage_name
         self.app_name = app_name
-        
-        # Generate table names based on stage and app
         self.controls_table = f"{stage_name}-{app_name}-controls"
         self.frameworks_table = f"{stage_name}-{app_name}-frameworks"
         self.framework_controls_table = f"{stage_name}-{app_name}-frameworkControls"
-        
-        # Display greeting message
-        print(self._get_greeting_message())
         
         # Initialize agents
         self.controls_agent = self._create_controls_agent()
         self.frameworks_agent = self._create_frameworks_agent()
         self.framework_controls_agent = self._create_framework_controls_agent()
     
-    def _get_greeting_message(self) -> str:
-        return f"""
-        🚀 Welcome to Fusefy - AI Adoption as a Service Platform! 🚀
-
-        Environment: {self.stage_name.upper()}
-        Application: {self.app_name.title()}
-
-        🔧 Agent Configuration:
-        ├── Controls Agent: {self.controls_table}
-        ├── Frameworks Agent: {self.frameworks_table}
-        └── Framework Controls Agent: {self.framework_controls_table}
-
-        🎯 Ready to assist with AI governance, compliance, and trustworthy AI implementation!
-        Type 'help' for available commands or start asking questions about AI controls, frameworks, or mappings.
-        """
     
     def _create_mcp_toolset(self, table_name: str) -> MCPToolset:
         """Create MCP toolset with specific table context"""
@@ -219,24 +198,11 @@ class FusefyAgentManager:
             ├── chat_with_controls(message) - Interact with AI Controls agent
             ├── chat_with_frameworks(message) - Interact with AI Frameworks agent  
             ├── chat_with_framework_controls(message) - Interact with Framework Controls agent
+            ├── get_framework_controls(framework_name) - Get controls for specific framework
+            ├── get_control_frameworks(control_name) - Get frameworks for specific control
             └── get_agent(type) - Get specific agent instance
 
-            **Example Queries:**
-
-            🛡️ **AI Controls:**
-            - "Show me all bias mitigation controls"
-            - "List controls for data privacy compliance"
-            - "Find high-risk controls requiring immediate attention"
-
-            🌐 **AI Frameworks:** 
-            - "Compare EU AI Act vs NIST framework requirements"
-            - "Show all regulatory frameworks for healthcare AI"
-            - "List voluntary vs mandatory compliance frameworks"
-
-            🔗 **Framework Controls Mapping:**
-            - "Map GDPR controls to EU AI Act requirements" 
-            - "Show compliance gaps for NIST framework"
-            - "Find overlapping controls across multiple frameworks"
+            
 
             **Table Configuration:**
             ├── Controls: {self.controls_table}
@@ -255,20 +221,25 @@ class FusefyAgentManager:
     def chat_with_framework_controls(self, message: str) -> str:
         """Chat with Framework Controls agent"""
         return self.framework_controls_agent.chat(message)
+    
+    def get_framework_controls(self, framework_name: str) -> str:
+        """
+        Specialized method to get controls attached to a specific framework
+        This demonstrates the 3-table lookup process you described
+        """
+        query = f"List all controls attached to the {framework_name} framework. Follow the process: 1) Find the framework in frameworks table, 2) Get its ID, 3) Query frameworkControls table for that frameworkId, 4) Get control details from controls table, 5) Present with framework name and control names (not IDs)."
+        return self.chat_with_framework_controls(query)
+    
+    def get_control_frameworks(self, control_name: str) -> str:
+        """
+        Specialized method to get frameworks attached to a specific control (reverse lookup)
+        """
+        query = f"List all frameworks that use the '{control_name}' control. Follow the process: 1) Find the control in controls table, 2) Get its ID, 3) Query frameworkControls table for that controlId, 4) Get framework details from frameworks table, 5) Present with control name and framework names (not IDs)."
+        return self.chat_with_framework_controls(query)
 
 
 # Factory function for easy agent creation
 def create_fusefy_agents(stage_name: str = "staging", app_name: str = "fusefy") -> FusefyAgentManager:
-    """
-    Create Fusefy agent manager with specified stage and app name
-    
-    Args:
-        stage_name: Environment stage (dev, staging, prod)
-        app_name: Application name (default: fusefy)
-        
-    Returns:
-        FusefyAgentManager: Configured agent manager instance
-    """
     return FusefyAgentManager(stage_name, app_name)
 
 
@@ -291,129 +262,63 @@ def create_framework_controls_agent(stage_name: str = "staging", app_name: str =
     return manager.framework_controls_agent
 
 
-class FusefyRootAgent:
-    """
-    Fusefy Root Agent - Intelligent Query Router
-    
-    This agent analyzes user queries and routes them to the appropriate specialized agent:
-    - Controls queries → Controls Agent
-    - Frameworks queries → Frameworks Agent  
-    - Framework Controls mapping queries → Framework Controls Agent
-    """
-    
+class FusefyRootAgent:    
     def __init__(self, stage_name: str = "staging", app_name: str = "fusefy"):
         self.stage_name = stage_name
         self.app_name = app_name
-        self.agent_manager = FusefyAgentManager(stage_name, app_name)
-        
-        # Keywords for routing logic
-        self.controls_keywords = [
-            "control", "controls", "bias", "mitigation", "security", "audit", "governance",
-            "compliance", "risk", "technical control", "procedural control", "administrative control",
-            "access control", "monitoring", "oversight", "human-in-the-loop", "explainability",
-            "transparency", "accountability", "privacy", "data protection", "incident response"
-        ]
-        
-        self.frameworks_keywords = [
-            "framework", "frameworks", "nist", "eu ai act", "chai", "owasp", "iso", "regulation",
-            "regulatory", "voluntary", "guideline", "standard", "china gen ai", "algorithm law",
-            "uk ai framework", "security standard", "research framework", "compliance framework",
-            "regulatory framework", "voluntary guideline"
-        ]
-        
-        self.mapping_keywords = [
-            "mapping", "map", "relationship", "coverage", "gap", "alignment", "cross-framework",
-            "framework control", "framework controls", "control mapping", "compliance gap",
-            "coverage analysis", "overlap", "framework alignment", "control-to-framework"
-        ]
-    
-    def _analyze_query(self, query: str) -> str:
-        """
-        Analyze query to determine which agent should handle it
-        
-        Returns: 'controls', 'frameworks', 'framework_controls', or 'general'
-        """
-        query_lower = query.lower()
-        
-        # Count keyword matches
-        controls_score = sum(1 for keyword in self.controls_keywords if keyword in query_lower)
-        frameworks_score = sum(1 for keyword in self.frameworks_keywords if keyword in query_lower)
-        mapping_score = sum(1 for keyword in self.mapping_keywords if keyword in query_lower)
-        
-        # Prioritize mapping queries first (most specific)
-        if mapping_score > 0 or any(word in query_lower for word in ["map", "mapping", "relationship", "coverage", "gap"]):
-            return "framework_controls"
-        
-        # Then frameworks
-        if frameworks_score > controls_score:
-            return "frameworks"
-        
-        # Then controls
-        if controls_score > 0:
-            return "controls"
-        
-        return "controls"
+        self.unified_agent = create_adk_root_agent(stage_name, app_name)
     
     def chat(self, message: str) -> str:
         """
-        Main chat interface that routes queries to appropriate agents
+        Main chat interface using unified agent with access to all tables
         """
         if message.lower().strip() in ["help", "?", "commands", "what can you do"]:
             return self._get_help_message()
         
-        agent_type = self._analyze_query(message)
-        
-        
         try:
-            if agent_type == "controls":
-                response = self.agent_manager.chat_with_controls(message)
-                return f"🛡️ **AI Controls Response:**\n\n{response}"
-            
-            elif agent_type == "frameworks":
-                response = self.agent_manager.chat_with_frameworks(message)
-                return f"🌐 **AI Frameworks Response:**\n\n{response}"
-            
-            elif agent_type == "framework_controls":
-                response = self.agent_manager.chat_with_framework_controls(message)
-                return f"🔗 **Framework Controls Response:**\n\n{response}"
-            
-            else:
-                # Default to controls agent for general queries
-                response = self.agent_manager.chat_with_controls(message)
-                return f"🛡️ **AI Controls Response (Default):**\n\n{response}"
+            # Use unified agent that has access to all three tables
+            response = self.unified_agent.chat(message)
+            return response
                 
         except Exception as e:
-            return f"❌ **Error routing query:** {str(e)}\n\nPlease try rephrasing your question or contact support."
+            return f"❌ **Error processing query:** {str(e)}\n\nPlease try rephrasing your question or contact support."
     
     def _get_help_message(self) -> str:
         """Return comprehensive help message"""
         return f"""
         {FUSEFY_GREETING}
 
-        🤖 **Fusefy AI Assistant - Intelligent Query Router**
+        🤖 **Fusefy AI Assistant - Intelligent AI Governance Assistant**
 
-        I automatically analyze your questions and route them to the most appropriate specialist:
+        I can help you with any questions about AI controls, frameworks, and their relationships.
+        I have access to all your AI governance data and can intelligently understand what you need.
 
-        🛡️ **AI Controls Queries** - Routed to Controls Agent:
-        Examples: "Show bias mitigation controls", "List security controls", "Find high-risk controls"
+        **Example Queries:**
 
-        🌐 **AI Frameworks Queries** - Routed to Frameworks Agent:  
-        Examples: "Compare NIST vs EU AI Act", "Show regulatory frameworks", "List voluntary guidelines"
+        🛡️ **AI Controls:**
+        - "Listing Controls
+        - "Find high-risk controls requiring immediate attention"
 
-        🔗 **Framework Controls Mapping** - Routed to Framework Controls Agent:
-        Examples: "Map GDPR to controls", "Show compliance gaps", "Framework coverage analysis"
+        🌐 **AI Frameworks:**
+        - "Show regulatory frameworks"
+        - "List voluntary guidelines"
+
+        🔗 **Framework-Control Relationships:**
+        - "List controls attached to a particular framework"
+        - "What frameworks use bias detection controls?"
 
         📊 **Current Configuration:**
         ├── Environment: {self.stage_name.upper()}
         ├── Application: {self.app_name.title()}
-        ├── Controls Table: {self.agent_manager.controls_table}
-        ├── Frameworks Table: {self.agent_manager.frameworks_table}
-        └── Framework Controls Table: {self.agent_manager.framework_controls_table}
+        ├── Controls Table: {self.stage_name}-{self.app_name}-controls
+        ├── Frameworks Table: {self.stage_name}-{self.app_name}-frameworks
+        └── Framework Controls Table: {self.stage_name}-{self.app_name}-frameworkControls
 
-        💡 **Pro Tips:**
-        - Ask specific questions for better routing
-        - Use keywords like "control", "framework", "mapping" for precise routing
-        - I'll automatically determine the best agent to handle your query
+        💡 **How it works:**
+        - Ask any question in natural language
+        - I'll intelligently determine what data you need
+        - I have access to all three tables for comprehensive analysis
+        - No need to specify which "agent" to use - just ask!
 
         🚀 **Ready to help with AI governance, compliance, and trustworthy AI implementation!**
         """
@@ -453,12 +358,27 @@ def create_adk_root_agent(stage_name: str = "staging", app_name: str = "fusefy")
     3. Present results in organized, easy-to-read formats with Fusefy branding
 
     **Framework-Controls Relationship Handling:**
-    When users ask about relationships between frameworks and controls:
-    1. Query the frameworkControls table to get frameworkId and controlId pairs
-    2. For each frameworkId, lookup the framework name/details in the frameworks table
-    3. For each controlId, lookup the control name/details in the controls table
-    4. Present results showing framework names and control names, NEVER raw IDs
-    5. Provide insights about coverage, gaps, and compliance implications
+    When users ask about relationships between frameworks and controls (e.g., "list controls attached to NIST AI framework"):
+    
+    **Process for "List controls attached to [framework]":**
+    1. 🔍 **Find Framework**: Query frameworks table to locate framework by name (support partial matching)
+    2. 📋 **Get Framework ID**: Extract the framework ID from the result
+    3. 🔗 **Find Relationships**: Query frameworkControls table for all entries with that frameworkId
+    4. 🛡️ **Get Control Details**: For each controlId found, query controls table to get control information
+    5. 📊 **Present Results**: Show framework name + complete list of controls with names (NEVER raw IDs)
+    
+    **Process for "List frameworks attached to [control]" (reverse):**
+    1. 🔍 **Find Control**: Query controls table to locate control by name
+    2. 📋 **Get Control ID**: Extract the control ID from the result
+    3. 🔗 **Find Relationships**: Query frameworkControls table for all entries with that controlId  
+    4. 🌐 **Get Framework Details**: For each frameworkId found, query frameworks table
+    5. 📊 **Present Results**: Show control name + all associated frameworks with names
+    
+    **Always follow this 3-table lookup process:**
+    - Table 1: Find the primary entity (framework or control)
+    - Table 2: Query frameworkControls for relationships
+    - Table 3: Lookup details of related entities
+    - Present: Human-readable names and comprehensive analysis
 
     **Error Handling:**
     - If tables are empty, say "No data available yet in your Fusefy environment"
@@ -467,7 +387,6 @@ def create_adk_root_agent(stage_name: str = "staging", app_name: str = "fusefy")
     - Never show raw error messages, timeout errors, or technical failures
     """
     
-    # Create agent with all three MCP toolsets for complete access
     return LlmAgent(
         name="Fusefy_Root_Agent",
         model=LiteLlm(model="openai/gpt-4o"),
