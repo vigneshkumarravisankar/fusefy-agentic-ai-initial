@@ -2,26 +2,22 @@ import json
 import os 
 from typing import Optional
 
-from google.adk.agents import Agent
+from google.adk.agents import Agent, LlmAgent
 from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset
 from google.adk.tools.mcp_tool.mcp_session_manager import StdioConnectionParams
 from mcp import StdioServerParameters
-
+from google.adk.models.lite_llm import LiteLlm
 from .prompt import CONTROLS_PROMPT, FRAMEWORKS_PROMPT, FRAMEWORK_CONTROLS_PROMPT, FUSEFY_GREETING, DYNAMODB_PROMPT
 
-# Verify GOOGLE_API_KEY is available in environment
-google_api_key = os.getenv("GOOGLE_API_KEY")
-if google_api_key is None:
-    raise ValueError("GOOGLE_API_KEY environment variable is not set")
+
+
+
+openai_api_key = os.getenv("OPENAI_API_KEY")
+if openai_api_key is None:
+    raise ValueError("OPENAI_API_KEY environment variable is not set")
 
 
 class FusefyAgentManager:
-    """
-    Fusefy AI Adoption as a Service Platform Agent Manager
-    
-    Fusefy is a next-generation Enterprise AI Consulting and Delivery Platform 
-    designed to accelerate safe, scalable, and trustworthy AI adoption across organizations.
-    """
     
     def __init__(self, stage_name: str = "staging", app_name: str = "fusefy"):
         self.stage_name = stage_name
@@ -41,20 +37,19 @@ class FusefyAgentManager:
         self.framework_controls_agent = self._create_framework_controls_agent()
     
     def _get_greeting_message(self) -> str:
-        """Get Fusefy welcome greeting message"""
         return f"""
-🚀 Welcome to Fusefy - AI Adoption as a Service Platform! 🚀
+        🚀 Welcome to Fusefy - AI Adoption as a Service Platform! 🚀
 
-Environment: {self.stage_name.upper()}
-Application: {self.app_name.title()}
+        Environment: {self.stage_name.upper()}
+        Application: {self.app_name.title()}
 
-🔧 Agent Configuration:
-├── Controls Agent: {self.controls_table}
-├── Frameworks Agent: {self.frameworks_table}
-└── Framework Controls Agent: {self.framework_controls_table}
+        🔧 Agent Configuration:
+        ├── Controls Agent: {self.controls_table}
+        ├── Frameworks Agent: {self.frameworks_table}
+        └── Framework Controls Agent: {self.framework_controls_table}
 
-🎯 Ready to assist with AI governance, compliance, and trustworthy AI implementation!
-Type 'help' for available commands or start asking questions about AI controls, frameworks, or mappings.
+        🎯 Ready to assist with AI governance, compliance, and trustworthy AI implementation!
+        Type 'help' for available commands or start asking questions about AI controls, frameworks, or mappings.
         """
     
     def _create_mcp_toolset(self, table_name: str) -> MCPToolset:
@@ -80,141 +75,124 @@ Type 'help' for available commands or start asking questions about AI controls, 
         )
     
     def _create_controls_agent(self) -> Agent:
-        """Create AI Controls agent for Fusefy"""
         controls_instruction = f"""{FUSEFY_GREETING}
 
-{CONTROLS_PROMPT}
+        {CONTROLS_PROMPT}
+                
+        Application Context: Fusefy - AI Adoption as a Service Platform
+        Primary Table: {self.controls_table}
+        Stage: {self.stage_name}
+        Module: AI Controls Management
+
+        🎯 **Your Role**: AI Controls Specialist for Fusefy Platform
+
+        You are working with AI Controls in the Fusefy application, specifically within the AI Audit Suite component. 
+        AI controls are policies, processes, and technical measures that ensure AI systems operate safely, ethically, 
+        and in compliance with organizational and regulatory standards.
+
+        🏗️ **Fusefy Context**: 
+        Fusefy operates on the FUSE Methodology:
+        - Feasibility: Assessing technical and business viability
+        - Usability: Ensuring user-centric design and adoption  
+        - Security: Implementing robust security and compliance
+        - Explainability: Maintaining transparency and interpretability
+
+        🎯 **Focus Areas for AI Controls**:
+        - Risk mitigation (bias, discrimination, explainability)
+        - Standardized governance across AI projects
+        - Transparency through control IDs and lifecycle stages
+        - Regulatory readiness and compliance (GDPR, SOC 2, EU AI Act)
+        - Accountability with trustworthy AI focus
+        - Risk prioritization through visible ratings
+
+        🔧 **Control Categories**:
+        - Technical Controls: Access controls, encryption, monitoring
+        - Procedural Controls: Audit processes, approval workflows
+        - Administrative Controls: Training, policies, governance
+        """
         
-Application Context: Fusefy - AI Adoption as a Service Platform
-Primary Table: {self.controls_table}
-Stage: {self.stage_name}
-Module: AI Controls Management
-
-🎯 **Your Role**: AI Controls Specialist for Fusefy Platform
-
-You are working with AI Controls in the Fusefy application, specifically within the AI Audit Suite component. 
-AI controls are policies, processes, and technical measures that ensure AI systems operate safely, ethically, 
-and in compliance with organizational and regulatory standards.
-
-🏗️ **Fusefy Context**: 
-Fusefy operates on the FUSE Methodology:
-- **F**easibility: Assessing technical and business viability
-- **U**sability: Ensuring user-centric design and adoption  
-- **S**ecurity: Implementing robust security and compliance
-- **E**xplainability: Maintaining transparency and interpretability
-
-🎯 **Focus Areas for AI Controls**:
-- Risk mitigation (bias, discrimination, explainability)
-- Standardized governance across AI projects
-- Transparency through control IDs and lifecycle stages
-- Regulatory readiness and compliance (GDPR, SOC 2, EU AI Act)
-- Accountability with trustworthy AI focus
-- Risk prioritization through visible ratings
-
-🔧 **Control Categories**:
-- Technical Controls: Access controls, encryption, monitoring
-- Procedural Controls: Audit processes, approval workflows
-- Administrative Controls: Training, policies, governance
-"""
-        
-        return Agent(
+        return LlmAgent(
             name="Fusefy_Controls_Agent",
-            model="gemini-2.0-flash-exp",
+            model=LiteLlm(model="openai/gpt-4o"),
             instruction=controls_instruction,
             tools=[self._create_mcp_toolset(self.controls_table)]
         )
     
     def _create_frameworks_agent(self) -> Agent:
-        """Create AI Frameworks agent for Fusefy"""
         frameworks_instruction = f"""{FUSEFY_GREETING}
 
-{FRAMEWORKS_PROMPT}
+        {FRAMEWORKS_PROMPT}
+                
+        Application Context: Fusefy - AI Adoption as a Service Platform
+        Primary Table: {self.frameworks_table}
+        Stage: {self.stage_name}
+        Module: AI Frameworks Management
+
+        🎯 **Your Role**: AI Frameworks Specialist for Fusefy Platform
+
+        You are working with AI Frameworks in the Fusefy application, supporting all three core offerings:
+        1. 💡 AI Ideation Studio - Framework guidance for use case planning
+        2. 🏭 AI Factory - Framework compliance during development
+        3. 🧾 AI Audit Suite - Framework validation and monitoring
+
+        🌐 **Supported Global Frameworks**: EU AI Act, China Gen AI Law, Algorithm Law, NIST AI RMF, UK AI Framework, CHAI, OWASP LLM Top 10, ISO 5338
+
+        🎯 **Key Framework Functions**:
+        - Cross-framework alignment and harmonization
+        - Regulatory compliance mapping and gap analysis
+        - Implementation guidance and best practices
+        - Risk assessment and mitigation strategies
+        """
         
-Application Context: Fusefy - AI Adoption as a Service Platform
-Primary Table: {self.frameworks_table}
-Stage: {self.stage_name}
-Module: AI Frameworks Management
-
-🎯 **Your Role**: AI Frameworks Specialist for Fusefy Platform
-
-You are working with AI Frameworks in the Fusefy application, supporting all three core offerings:
-1. 💡 AI Ideation Studio - Framework guidance for use case planning
-2. 🏭 AI Factory - Framework compliance during development
-3. 🧾 AI Audit Suite - Framework validation and monitoring
-
-🌐 **Supported Global Frameworks**:
-
-**Regulatory Frameworks:**
-- EU AI Act (European Union) - Risk-based classification, compliance obligations
-- China Gen AI Law - Censorship, accountability, transparency  
-- Algorithm Law (China) - Fairness in recommendations, user control
-
-**Voluntary Guidelines:**
-- NIST AI RMF (USA) - Risk management, trust, documentation
-- UK AI Framework - Pro-innovation, sector-specific principles
-- CHAI (USA) - Human-compatible AI, safety research
-
-**Security & Standards:**
-- OWASP LLM Top 10 (Global) - LLM-specific risks and countermeasures
-- ISO 5338 (Global) - AI lifecycle governance standard
-
-🎯 **Key Framework Functions**:
-- Cross-framework alignment and harmonization
-- Regulatory compliance mapping and gap analysis
-- Implementation guidance and best practices
-- Risk assessment and mitigation strategies
-"""
-        
-        return Agent(
+        return LlmAgent(
             name="Fusefy_Frameworks_Agent",
-            model="gemini-2.0-flash-exp",
+            model=LiteLlm(model="openai/gpt-4o"),
             instruction=frameworks_instruction,
             tools=[self._create_mcp_toolset(self.frameworks_table)]
         )
     
     def _create_framework_controls_agent(self) -> Agent:
-        """Create Framework Controls mapping agent for Fusefy"""
         framework_controls_instruction = f"""{FUSEFY_GREETING}
 
-{FRAMEWORK_CONTROLS_PROMPT}
+        {FRAMEWORK_CONTROLS_PROMPT}
+                
+        Application Context: Fusefy - AI Adoption as a Service Platform
+        Primary Table: {self.framework_controls_table}
+        Stage: {self.stage_name}
+        Module: Framework Controls Mapping
+
+        🎯 **Your Role**: Framework Controls Mapping Specialist for Fusefy Platform
+
+        You are working with Framework Controls mappings in the Fusefy application, bridging the gap between 
+        AI controls and regulatory frameworks. This is crucial for Fusefy's AI Audit Suite and compliance validation.
+
+        🔗 **Mapping Relationships**:
+        - Controls Table: {self.controls_table}
+        - Frameworks Table: {self.frameworks_table}  
+        - Current Table: {self.framework_controls_table}
+
+        🎯 **Core Mapping Functions**:
+        - **Control-to-Framework Mapping**: Link specific controls to applicable frameworks
+        - **Compliance Gap Analysis**: Identify missing controls for framework requirements
+        - **Coverage Assessment**: Evaluate framework implementation completeness
+        - **Cross-Framework Alignment**: Find overlapping requirements across frameworks
+        - **Risk-Based Prioritization**: Map controls based on risk levels and framework criticality
+
+        🏗️ **Fusefy Integration Points**:
+        - **AI Ideation Studio**: Framework requirements during use case planning
+        - **AI Factory**: Automated compliance checks during development
+        - **AI Audit Suite**: Continuous monitoring and compliance reporting
+
+        🎯 **Mapping Considerations**:
+        - One control may satisfy multiple framework requirements
+        - Complex frameworks may need multiple coordinated controls  
+        - Regional compliance variations (EU vs US vs China requirements)
+        - Industry-specific adaptations (Healthcare, Finance, etc.)
+        """
         
-Application Context: Fusefy - AI Adoption as a Service Platform
-Primary Table: {self.framework_controls_table}
-Stage: {self.stage_name}
-Module: Framework Controls Mapping
-
-🎯 **Your Role**: Framework Controls Mapping Specialist for Fusefy Platform
-
-You are working with Framework Controls mappings in the Fusefy application, bridging the gap between 
-AI controls and regulatory frameworks. This is crucial for Fusefy's AI Audit Suite and compliance validation.
-
-🔗 **Mapping Relationships**:
-- Controls Table: {self.controls_table}
-- Frameworks Table: {self.frameworks_table}  
-- Current Table: {self.framework_controls_table}
-
-🎯 **Core Mapping Functions**:
-- **Control-to-Framework Mapping**: Link specific controls to applicable frameworks
-- **Compliance Gap Analysis**: Identify missing controls for framework requirements
-- **Coverage Assessment**: Evaluate framework implementation completeness
-- **Cross-Framework Alignment**: Find overlapping requirements across frameworks
-- **Risk-Based Prioritization**: Map controls based on risk levels and framework criticality
-
-🏗️ **Fusefy Integration Points**:
-- **AI Ideation Studio**: Framework requirements during use case planning
-- **AI Factory**: Automated compliance checks during development
-- **AI Audit Suite**: Continuous monitoring and compliance reporting
-
-🎯 **Mapping Considerations**:
-- One control may satisfy multiple framework requirements
-- Complex frameworks may need multiple coordinated controls  
-- Regional compliance variations (EU vs US vs China requirements)
-- Industry-specific adaptations (Healthcare, Finance, etc.)
-"""
-        
-        return Agent(
+        return LlmAgent(
             name="Fusefy_FrameworkControls_Agent",
-            model="gemini-2.0-flash-exp",
+            model=LiteLlm(model="openai/gpt-4o"),
             instruction=framework_controls_instruction,
             tools=[self._create_mcp_toolset(self.framework_controls_table)]
         )
@@ -234,37 +212,36 @@ AI controls and regulatory frameworks. This is crucial for Fusefy's AI Audit Sui
         return agents[agent_type]
     
     def show_help(self) -> str:
-        """Display available commands and capabilities"""
         return f"""
-🔧 **Fusefy Agent Manager - Available Commands**
+            🔧 **Fusefy Agent Manager - Available Commands**
 
-**Agent Operations:**
-├── chat_with_controls(message) - Interact with AI Controls agent
-├── chat_with_frameworks(message) - Interact with AI Frameworks agent  
-├── chat_with_framework_controls(message) - Interact with Framework Controls agent
-└── get_agent(type) - Get specific agent instance
+            **Agent Operations:**
+            ├── chat_with_controls(message) - Interact with AI Controls agent
+            ├── chat_with_frameworks(message) - Interact with AI Frameworks agent  
+            ├── chat_with_framework_controls(message) - Interact with Framework Controls agent
+            └── get_agent(type) - Get specific agent instance
 
-**Example Queries:**
+            **Example Queries:**
 
-🛡️ **AI Controls:**
-- "Show me all bias mitigation controls"
-- "List controls for data privacy compliance"
-- "Find high-risk controls requiring immediate attention"
+            🛡️ **AI Controls:**
+            - "Show me all bias mitigation controls"
+            - "List controls for data privacy compliance"
+            - "Find high-risk controls requiring immediate attention"
 
-🌐 **AI Frameworks:** 
-- "Compare EU AI Act vs NIST framework requirements"
-- "Show all regulatory frameworks for healthcare AI"
-- "List voluntary vs mandatory compliance frameworks"
+            🌐 **AI Frameworks:** 
+            - "Compare EU AI Act vs NIST framework requirements"
+            - "Show all regulatory frameworks for healthcare AI"
+            - "List voluntary vs mandatory compliance frameworks"
 
-🔗 **Framework Controls Mapping:**
-- "Map GDPR controls to EU AI Act requirements" 
-- "Show compliance gaps for NIST framework"
-- "Find overlapping controls across multiple frameworks"
+            🔗 **Framework Controls Mapping:**
+            - "Map GDPR controls to EU AI Act requirements" 
+            - "Show compliance gaps for NIST framework"
+            - "Find overlapping controls across multiple frameworks"
 
-**Table Configuration:**
-├── Controls: {self.controls_table}
-├── Frameworks: {self.frameworks_table}
-└── Framework Controls: {self.framework_controls_table}
+            **Table Configuration:**
+            ├── Controls: {self.controls_table}
+            ├── Frameworks: {self.frameworks_table}
+            └── Framework Controls: {self.framework_controls_table}
         """
     
     def chat_with_controls(self, message: str) -> str:
@@ -375,27 +352,17 @@ class FusefyRootAgent:
         if controls_score > 0:
             return "controls"
         
-        # Default to controls for general queries
         return "controls"
     
     def chat(self, message: str) -> str:
         """
         Main chat interface that routes queries to appropriate agents
         """
-        # Handle help requests
         if message.lower().strip() in ["help", "?", "commands", "what can you do"]:
             return self._get_help_message()
         
-        # Analyze query and route to appropriate agent
         agent_type = self._analyze_query(message)
         
-        # Add routing context to the message
-        routing_context = f"""
-Query Analysis: This appears to be a {agent_type.replace('_', ' ')} related question.
-Routing to: {agent_type.title().replace('_', ' ')} Agent
-
-Original Query: {message}
-"""
         
         try:
             if agent_type == "controls":
@@ -451,16 +418,11 @@ Original Query: {message}
         🚀 **Ready to help with AI governance, compliance, and trustworthy AI implementation!**
         """
 
-# Create ADK-compatible root agent that uses Fusefy routing logic
 def create_adk_root_agent(stage_name: str = "staging", app_name: str = "fusefy") -> Agent:
     """
     Create ADK-compatible root agent with Fusefy routing capabilities
     """
     
-    # Create the routing system
-    # fusefy_router = FusefyRootAgent(stage_name, app_name)
-    
-    # Create instruction that explains the routing system
     root_instruction = f"""{FUSEFY_GREETING}
 
     🤖 **Fusefy AI Assistant - Intelligent Query Router**
@@ -530,12 +492,11 @@ def create_adk_root_agent(stage_name: str = "staging", app_name: str = "fusefy")
     """
     
     # Create agent with all three MCP toolsets for complete access
-    return Agent(
+    return LlmAgent(
         name="Fusefy_Root_Agent",
-        model="gemini-2.0-flash-exp",
+        model=LiteLlm(model="openai/gpt-4o"),
         instruction=root_instruction,
         tools=[
-            # Controls table access
             MCPToolset(
                 connection_params=StdioConnectionParams(
                     server_params=StdioServerParameters(
@@ -555,7 +516,6 @@ def create_adk_root_agent(stage_name: str = "staging", app_name: str = "fusefy")
                     )
                 )
             ),
-            # Frameworks table access
             MCPToolset(
                 connection_params=StdioConnectionParams(
                     server_params=StdioServerParameters(
@@ -575,7 +535,6 @@ def create_adk_root_agent(stage_name: str = "staging", app_name: str = "fusefy")
                     )
                 )
             ),
-            # Framework Controls table access
             MCPToolset(
                 connection_params=StdioConnectionParams(
                     server_params=StdioServerParameters(
@@ -598,55 +557,7 @@ def create_adk_root_agent(stage_name: str = "staging", app_name: str = "fusefy")
         ],
     )
 
-# Health check function
-def check_fusefy_connection(stage_name: str = "staging", app_name: str = "fusefy") -> dict:
-    """
-    Check the health of Fusefy agent connections
-    
-    Returns:
-        dict: Status of each table connection
-    """
-    status = {
-        "controls": "unknown",
-        "frameworks": "unknown", 
-        "frameworkControls": "unknown",
-        "overall": "unknown"
-    }
-    
-    try:
-        # Test basic environment variables
-        if not os.getenv("AWS_ACCESS_ID") or not os.getenv("AWS_SECRET_ACCESS_KEY"):
-            status["overall"] = "AWS credentials not configured"
-            return status
-            
-        if not os.getenv("GOOGLE_API_KEY"):
-            status["overall"] = "Google API key not configured"
-            return status
-            
-        status["overall"] = "Environment configured - ready for queries"
-        status["controls"] = f"Ready: {stage_name}-{app_name}-controls"
-        status["frameworks"] = f"Ready: {stage_name}-{app_name}-frameworks"
-        status["frameworkControls"] = f"Ready: {stage_name}-{app_name}-frameworkControls"
-        
-    except Exception as e:
-        status["overall"] = f"Configuration check failed: {str(e)}"
-    
-    return status
-
 # Create the ADK-compatible root agent
 root_agent = create_adk_root_agent("staging", "fusefy")
 
-# Convenience function for direct root agent access
-def create_fusefy_root_agent(stage_name: str = "staging", app_name: str = "fusefy") -> FusefyRootAgent:
-    """
-    Create Fusefy root agent with intelligent query routing
-    
-    Args:
-        stage_name: Environment stage (dev, staging, prod)
-        app_name: Application name (default: fusefy)
-        
-    Returns:
-        FusefyRootAgent: Root agent with automatic query routing
-    """
-    return FusefyRootAgent(stage_name, app_name)
 
