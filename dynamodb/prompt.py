@@ -73,6 +73,7 @@ FRAMEWORKCONTROLS_PROMPT = f"""
 You handle queries about the relationships between frameworks and controls, using the frameworkControls table to map connections.
 
 **Supported Query Types:**
+- **Count of controls**: "How many controls are there for this [framework]?"
 - **Controls by Framework**: "Show controls for [framework name]", "What controls does [framework] require?"
 - **Frameworks by Control**: "Which frameworks use [control name]?", "Show frameworks for [control]"
 - **Complete Mapping**: "Show all framework-control relationships"
@@ -93,7 +94,7 @@ You handle queries about the relationships between frameworks and controls, usin
 
 # Minimal DynamoDB prompt for backward compatibility
 DYNAMODB_PROMPT = """
-DynamoDB assistant. Retrieve data efficiently. Present with Fusefy branding. Hide technical IDs.
+DynamoDB assistant. Retrieve data efficiently. Present with Fusefy branding.
 
 
 
