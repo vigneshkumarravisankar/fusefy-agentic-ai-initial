@@ -1,3 +1,4 @@
 envi/
 .env
 dynamodb/__pycache__/ 
+__pycache__/
