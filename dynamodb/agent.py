@@ -23,7 +23,6 @@ def create_master_agent(stage_name: str, app_name: str) -> Agent:
     
     fusefy_frameworks_agent = create_sub_agent(
                 agent_name="Fusefy_Frameworks_Agent",
-                model_name="openai/gpt-4o",
                 instruction=f"Use {stage_name}-{app_name}-frameworks table to scan and retrieve datas" + FRAMEWORKS_PROMPT,
                 agent_type="",
                 tools=[frameworks_mcp_toolset],
@@ -31,7 +30,6 @@ def create_master_agent(stage_name: str, app_name: str) -> Agent:
     
     fusefy_controls_agent = create_sub_agent(
                     agent_name="Fusefy_Controls_Prompt",
-                    model_name="openai/gpt-4o",
                     instruction=f"Use {stage_name}-{app_name}-controls table to scan and retrieve datas" + CONTROLS_PROMPT,
                     agent_type="",
                     tools=[controls_mcp_toolset],
@@ -39,7 +37,6 @@ def create_master_agent(stage_name: str, app_name: str) -> Agent:
     
     fusefy_frameworkControls_agent = create_sub_agent(
                 agent_name="Fusefy_FrameworkControls_Agent",
-                model_name="openai/gpt-4o",
                 instruction=f"Use {stage_name}-{app_name}-frameworkControls first to check both the frameworkId and controlId. To check the framework related details, with the frameworkId from the {stage_name}-{app_name}-frameworkControls, refer to the {stage_name}-{app_name}-frameworks and for the matched controlIds in with this frameworkId, refer to controls table({stage_name}-{app_name}-controls) for control specific details. " + FRAMEWORKCONTROLS_PROMPT,
                 agent_type="",
                 tools=[frameworkControls_mcp_toolset],

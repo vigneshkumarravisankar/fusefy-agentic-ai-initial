@@ -1,2 +1,8 @@
 google-adk
 mcp
+litellm
+python-dotenv
+fastapi
+requests
+streamlit
+uvicorn[standard]
