@@ -2,3 +2,6 @@ envi/
 .env
 dynamodb/__pycache__/ 
 __pycache__/
+dynamodb/sub_agents/__pycache__/
+dynamodb/mcp_toolsets/__pycache__/
+dynamodb/.adk/eval_history/
