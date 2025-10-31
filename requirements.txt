@@ -6,3 +6,7 @@ fastapi
 requests
 streamlit
 uvicorn[standard]
+PyPDF2
+python-docx
+openai
+boto3

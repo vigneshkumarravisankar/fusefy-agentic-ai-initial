@@ -1,5 +1,6 @@
 import json
 import os
+import hashlib
 from typing import Optional
 from datetime import datetime
 from google.adk.agents import Agent, LlmAgent
@@ -56,9 +57,14 @@ PROHIBITED AI:
 """
 
 # === MAIN AGENT CREATOR ===
-def create_master_agent(stage_name: str, app_name: str, cloud_id: str) -> Agent:    
-    # Configure MCP toolset
-    mcp_toolset = MCPToolset(
+def create_master_agent(stage_name: str, app_name: str, cloud_id: str) -> tuple[Agent, MCPToolset]:
+    """
+    Returns both the agent and the toolset so you can properly clean up the session later
+    """
+    
+    # Configure MCP toolset with error handling
+    try:
+        mcp_toolset = MCPToolset(
             connection_params=StdioConnectionParams(
                 server_params=StdioServerParameters(
                     command="node",
@@ -73,24 +79,34 @@ def create_master_agent(stage_name: str, app_name: str, cloud_id: str) -> Agent:
                 )
             )
         )
+    except Exception as e:
+        print(f"Failed to initialize MCP toolset: {e}")
+        raise
     
-    return LlmAgent(
+    # # Initialize the model properly
+    # model = LiteLlm(
+    #     model_name="gemini/gemini-2.0-flash-exp",
+    #     api_key=google_api_key
+    # )
+    
+    agent = LlmAgent(
         name="Fusefy_Usecase_Generator_Agent",
         model="gemini-2.5-flash",
         instruction=f"""
         You are an expert AI Usecase extractor and risk assessor for Fusefy.
         
-        Use DynamoDB MCP in order to store the data in the tables. Follow till final process of uploading the usecase into the respective dynamodb table..
+        Use DynamoDB MCP to store data in tables. Follow the complete process of uploading the usecase into the respective DynamoDB table.
 
         Your goal:
         1. Accept an uploaded AI Usecase requirements document (PDF, DOCX, TXT).
         2. Read and understand the document content.
+        3. Query existing usecases to determine the next incremental ID.
         4. Generate a structured JSON for the AI usecase in this exact format:
         {{
-          "id": ""(analyze existing usecase ids, and frame incremental counter from those),
+          "id": "(analyze existing usecase ids, and frame incremental counter from those)",
           "ai_approach": "",
           "ai_category": "",
-          "ai_cloud_provider": ""(either GCP/AWS/Azure based on the requirements),
+          "ai_cloud_provider": "(either GCP/AWS/Azure based on the requirements)",
           "AIMethodologyType": "",
           "baseModelName": "",
           "businessUsage": "",
@@ -125,7 +141,7 @@ def create_master_agent(stage_name: str, app_name: str, cloud_id: str) -> Agent:
           "status": "",
           "updatedAt": "",
           "usecaseCategory": "",
-          "useFrequency": ""(frequent/continuous(24/7)/weekly/batch)
+          "useFrequency": "(frequent/continuous(24/7)/weekly/batch)"
         }}
 
         Then:
@@ -148,10 +164,27 @@ def create_master_agent(stage_name: str, app_name: str, cloud_id: str) -> Agent:
         """,
         tools=[mcp_toolset]
     )
+    
+    return agent, mcp_toolset
 
-# Create the agent
-root_agent = create_master_agent(
-    stage_name="staging",
-    app_name="fusefy",
-    cloud_id="d66cb7c7-04ac-4634-927f-06d91afa39bf"
-)
+# Usage example with proper cleanup:
+def run_agent_with_cleanup(stage_name: str, app_name: str, cloud_id: str, query: str):
+    agent = None
+    mcp_toolset = None
+    
+    try:
+        agent, mcp_toolset = create_master_agent(stage_name, app_name, cloud_id)
+        response = agent.run(query)
+        return response
+    except Exception as e:
+        print(f"Error running agent: {e}")
+        raise
+    finally:
+        # Cleanup MCP session
+        if mcp_toolset:
+            try:
+                # Close the MCP session properly
+                if hasattr(mcp_toolset, 'cleanup') or hasattr(mcp_toolset, 'close'):
+                    mcp_toolset.cleanup() if hasattr(mcp_toolset, 'cleanup') else mcp_toolset.close()
+            except Exception as cleanup_error:
+                print(f"Warning: Error during MCP cleanup: {cleanup_error}")
