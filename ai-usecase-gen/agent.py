@@ -12,6 +12,7 @@ from mcp import StdioServerParameters
 google_api_key = os.getenv("GOOGLE_API_KEY")
 aws_access_key = os.getenv("AWS_ACCESS_ID")
 aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+openai_key = os.getenv("OPENAI_API_KEY")
 
 if not google_api_key:
     raise ValueError("GOOGLE_API_KEY environment variable is not set")
@@ -19,6 +20,8 @@ if not aws_access_key:
     raise ValueError("AWS_ACCESS_ID environment variable is not set")
 if not aws_secret_key:
     raise ValueError("AWS_SECRET_ACCESS_KEY environment variable is not set")
+if not openai_key:
+    raise ValueError("OPENAI_API_KEY environment variable is not set")
 
 # === DOCUMENT RISK GUIDANCE TEXT ===
 DOCUMENT_RISK_GUIDANCE = """
@@ -76,7 +79,7 @@ def create_master_agent(stage_name: str, app_name: str, cloud_id: str) -> Agent:
     
     return LlmAgent(
         name="Fusefy_Usecase_Generator_Agent",
-        model="gemini-2.5-flash",
+        model=LiteLlm(model="openai/gpt-4o"),
         instruction=f"""
         You are an expert AI Usecase extractor and risk assessor for Fusefy.
         
@@ -87,21 +90,23 @@ def create_master_agent(stage_name: str, app_name: str, cloud_id: str) -> Agent:
         2. Read and understand the document content.
         4. Generate a structured JSON for the AI usecase in this exact format:
         {{
-          "id": ""(analyze existing usecase ids, and frame incremental counter from those),
+          "id": ""(analyze existing usecase ids, and frame incremental counter from those - starting with AI-UC-AST-00x(number)),
           "ai_approach": "",
-          "ai_category": "",
+          "ai_category": ""(as specified in the document - either Machine Learning/AI Workflow Agents/Agentic AI),
           "ai_cloud_provider": ""(either GCP/AWS/Azure based on the requirements),
-          "AIMethodologyType": "",
-          "baseModelName": "",
-          "businessUsage": "",
-          "category": "",
-          "cloudProvider": "",
-          "createdAt": "",
-          "department": "",
+          "AIMethodologyType": ""(AI Workflow Agents/Agentic AI),
+          "baseModelName": ""(LLM Model Name),
+          "businessUsage": ""(where exactly this usecase is used),
+          "category": "AI Inventory(by default)",
+          "cloudProvider": ""(GCP/AWS/Azure),
+          "createdAt": ""(ISO Hash),
+          "department": ""(the department where it is used - Real Estate/Human Resources/EdTech/Finance-team accordingly),
+          "disableModelProcess":false(by default),
           "designDocument": "",
           "documentHash": "",
           "documentSummary": "",
           "impact": "",
+          "jiraStoryId":"",
           "isProposalGenerated": false,
           "keyActivity": "",
           "level": 0,
